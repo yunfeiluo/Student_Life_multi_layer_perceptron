@@ -142,7 +142,7 @@ def clustering(student_list, data, method):
     @param method: string from command line argument(s), decide how to clustering
     '''
     # TODO *yunfeiluo) do the actual clustering work, write to pkl file
-    groups = dict() # map: student_id -> group_id
+    groups = dict()
     if method == 'one_for_each':
         groups = one_for_each(student_list)
     elif method[:10] == 'avg_stress':
