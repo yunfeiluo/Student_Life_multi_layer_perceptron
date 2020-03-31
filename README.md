@@ -1,6 +1,9 @@
-# Student_Life_multi_layer_perceptron
-contribution to the Machine Learning Research Project on the dataset: student_life  
-Implementation of functions for the building and training model, clustering, and model evaluation  
+# Machine Learning Research Project: Grouplized Student Stress Prediction  
+Title: Student_Life_multi_layer_perceptron  
+  
+Works:  
+a) contribution to the Machine Learning Research Project on the dataset: student_life  
+b) Implementation of functions for the building and training model, clustering, and model evaluation  
 
 # Code backup (Functionalities):
 
