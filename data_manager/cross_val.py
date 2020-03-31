@@ -33,14 +33,21 @@ def leave_one_subject_out_split(data: dict, groups: dict, ids: list, subject='st
 
     data_keys = data['data'].keys()
 
-    student_key = dict()
+    student_key = dict() # map: id -> keys
     for key in data_keys:
-        try:
-            student_key[key.split('_')[0]].append(key)
-        except:
-            student_key[key.split('_')[0]] = [key]
+        if subject == 'students':
+            try:
+                student_key[key.split('_')[0]].append(key)
+            except:
+                student_key[key.split('_')[0]] = [key]
+        elif subject == 'groups':
+            try:
+                student_key[groups['student_' + key.split('_')[0]]].append(key)
+            except:
+                student_key[groups['student_' + key.split('_')[0]]] = [key]
         
-    for student in student_key:
+    #for student in student_key:
+    for student in ids:
         splitting_dict = dict()
         splitting_dict['train_ids'] = list()
         for rest_student in student_key:
