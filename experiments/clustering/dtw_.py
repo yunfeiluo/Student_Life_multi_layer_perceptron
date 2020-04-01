@@ -1,37 +1,79 @@
+# ---------------------------------------------------------------- 
+# Independent Study 496, Student Stree Prediction
+#
+# file_name: dtw_.py
+# Functionality: Class, DTW_clusters: do clustering based on DTW distance
+# Author: Yunfei Luo
+# Start date: EST Mar.25th.2020
+# Last update: EST Apr.1th.2020
+# ----------------------------------------------------------------
+
 import numpy as np
+import matplotlib.pyplot as plt
 
 class DTW_clusters:
-    def __init__(self, n_clusters, random_state, tol):
-        self.n_clusters = n_clusters
-        self.random_state = random_state
-        self.tol = tol
-        self.cluster_centers_ = list() # list of numpy array
+    def __init__(self, threshold):
+        self.threshold = threshold
+        self.random_state = 0
+        self.dist_matrix = list() # 2D array of distance matrix
+        self.groups = dict() # dictionary, map: pts_ind -> group
+        self.pts = list()
     
     def fit(self, data):
-        # random centers, test purpose
-        np.random.seed(self.random_state)
-        max_ts_len = max([len(i) for i in data])
-        pt_dim = len(data[0][0])
-        for i in range(self.n_clusters):
-            len_ = np.random.randint(max_ts_len)
-            #len_ = max_ts_len
-            center = np.random.rand(len_, pt_dim)
-            self.cluster_centers_.append(center)
+        # calculate distance matrix
+        dist_matrix = list()
+        for pt1 in data:
+            row = list()
+            for pt2 in data:
+                row.append(self.dtw_dist(pt1, pt2))
+            dist_matrix.append(row)
+        self.dist_matrix = np.array(dist_matrix)
+        self.pts = data
+        
+        # helper function
+        def dfs(ind, choosen, group_id):
+            for i in range(len(choosen)):
+                if choosen[i]:
+                    continue
+                if self.dist_matrix[ind][i] <= self.threshold:
+                    choosen[i] = True
+                    self.groups[i] = group_id
+                    dfs(i, choosen, group_id)
 
-        # TODO
+        # group the data points w.r.t threshold
+        choosen = [False for _ in range(len(self.pts))]
+        group_id = -1
+        while False in choosen:
+            group_id += 1
+            ind = choosen.index(False)
+            choosen[ind] = True
+            self.groups[ind] = group_id
+            dfs(ind, choosen, group_id)
+
+        # plt.imshow(self.dist_matrix, cmap='gray')
+        # plt.show()
+
         return self
     
     def predict(self, pts):
         res = list()
         for pt in pts:
-            dists = [self.dtw_dist(c, pt) for c in self.cluster_centers_]
-            res.append(np.argmin(dists))
+            group = -1
+            min_dist = np.inf
+            for i in range(len(self.pts)):
+                curr_dist = self.dtw_dist(pt, self.pts[i])
+                if curr_dist < min_dist:
+                    min_dist = curr_dist
+                    group = self.groups[i]
+            res.append(group)
         return res
 
     # helper functions
+    # Calculate distance between to points
     def dist(self, p1, p2):
         return np.linalg.norm(p1-p2, ord=2)
 
+    # Calculate DTW distance between to series data
     def dtw_dist(self, ts1, ts2):
         DTW = dict()
         DTW[(0, 0)] = 0
