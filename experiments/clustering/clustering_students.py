@@ -6,7 +6,7 @@
 #    return dict: map: group_ids(str) -> list_of_student_id(list(str))
 # Author: Yunfei Luo
 # Start date: EST Feb.22th.2020
-# Last update: EST Feb.27th.2020
+# Last update: EST Apr.1st.2020
 # ----------------------------------------------------------------
 
 import random
@@ -148,12 +148,12 @@ def avg_stress_cluster(student_list, data, k):
     return groups
 
 # time warping clustering
-def time_warping(student_list, data, feature, k):
+def time_warping(student_list, data, feature, threshold):
     '''
     @param student_list: list of student id, in the form (string)student_id
     @param data: actual data, dict: (string)keys -> data
     @param feature: {-1: stress label, 0-5: corresponding feature}
-    @param k: number of centers for kmeans clustering
+    @param threshold: distance for clustering
     '''
     month_days = {0: 0, 1: 31, 2: 28, 3: 31, 4: 30, 5: 31, 6: 30, 7: 31, 8: 31, 9: 30, 10: 31, 11: 30, 12: 31} # map: month -> # days
     # TODO (yunfeiluo)
@@ -177,15 +177,14 @@ def time_warping(student_list, data, feature, k):
             pts.append(pt)
     pts = np.array(pts)
     
-    plt.plot([i[0] for i in pts[0]], [i[1] for i in pts[0]])
-    for i in range(1, 3):
-        plt.plot([i[0] for i in pts[i]], [i[1] for i in pts[i]])
-    plt.show()
+    # plt.plot([i[0] for i in pts[0]], [i[1] for i in pts[0]])
+    # for i in range(1, 3):
+    #     plt.plot([i[0] for i in pts[i]], [i[1] for i in pts[i]])
+    # plt.show()
     
     # dtw clustering
     print('fitting...')
-    dtw_clusters = DTW_clusters(n_clusters = k, random_state=0, tol=10 ** -10).fit(pts)
-    centers = dtw_clusters.cluster_centers_
+    dtw_clusters = DTW_clusters(threshold=threshold).fit(pts)
 
     # build group dictionary
     print('predicting...')
@@ -213,10 +212,9 @@ def clustering(student_list, data, method):
         k = int(method.split('_')[-2])
         groups = kmeans_features(student_list, features, k)
     elif method [:3] == 'dtw':
-        k = int(method.split('_')[-2])
+        threshold = int(method.split('_')[1])
         feature = -1 # stress label
-        groups = time_warping(student_list, data, feature, k)
-        print('This function haven\'t implemented...')
+        groups = time_warping(student_list, data, feature, threshold)
     else:
         groups = one_for_each(student_list)
 
@@ -227,7 +225,6 @@ def clustering(student_list, data, method):
 
 if __name__ == '__main__':
     # ##### Pickle #####
-    print(os.path.abspath('Data/training_data/shuffled_splits/training_date_normalized_shuffled_splits_select_features_no_prev_stress_all_students.pkl'))
     data_file_path = 'Data/training_data/shuffled_splits/training_date_normalized_shuffled_splits_select_features_no_prev_stress_all_students.pkl'
     data = read_pickle(data_file_path)
     student_list = conversions.extract_distinct_student_idsfrom_keys(data['data'].keys())
