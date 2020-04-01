@@ -2,7 +2,7 @@ import os
 import sys
 import torch
 import tqdm
-import numpy as np
+import random
 
 import src.bin.tensorify as tensorify
 import src.utils.data_conversion_utils as conversions
@@ -44,9 +44,9 @@ group_ids = list()
 student_ids = list()
 rev_groups = dict()
 for student in student_groups:
-    student_ids.append(student.split('_')[1])
     if rev_groups.get(student_groups[student]) != None:
         rev_groups[student_groups[student]].append(student)
+        student_ids.append(student.split('_')[1])
     else:
         rev_groups[student_groups[student]] = [student]
         group_ids.append(student_groups[student])
@@ -65,8 +65,7 @@ except:
 
 # leave one subject out
 num_subject = 5
-choose_ind = np.random.randint(0,len(student_groups),num_subject)
-ids = [student_ids[i] for i in choose_ind]
+ids = random.sample(student_ids, num_subject)
 print('Choosen student: ', ids)
 splits = cross_val.leave_one_subject_out_split(data=data, groups=student_groups, ids=ids, subject=stratification_type)
 print("Splits: ", len(splits))
@@ -232,6 +231,7 @@ for split_no, split in enumerate(splits):
     best_score_epoch_log.append(epoch_at_best_score)
     best_models.append(deepcopy(best_model))
 
+print('split scores: ' + str(split_val_scores))
 print("alpha: {} Beta: {}".format(alpha, beta))
 print("Avg Cross Val Score: {}".format(list_mean(split_val_scores)))
 max_idx = split_val_scores.index(max(split_val_scores))
