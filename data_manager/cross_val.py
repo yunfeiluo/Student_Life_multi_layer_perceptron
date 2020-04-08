@@ -17,7 +17,7 @@ SPLITTER_RANDOM_STATE = 100
 #   b) leave one student out split
 # Author: Yunfei Luo
 # Start date: EST Feb.22th.2020
-# Last update: EST Mar.30th.2020
+# Last update: EST Apr.8th.2020
 # ----------------------------------------------------------------
 
 def leave_one_subject_out_split(data: dict, groups: dict, ids: list, subject='students'):
@@ -45,6 +45,9 @@ def leave_one_subject_out_split(data: dict, groups: dict, ids: list, subject='st
                 student_key[groups['student_' + key.split('_')[0]]].append(key)
             except:
                 student_key[groups['student_' + key.split('_')[0]]] = [key]
+        else:
+            print('No such subject: ' + subject)
+            exit()
         
     #for student in student_key:
     for student in ids:
@@ -85,17 +88,13 @@ def get_k_fod_cross_val_splits_stratified_by_students(data: dict, groups:dict, n
         for key in data_keys:
             stratification_column.append(int(groups['student_' + key.split('_')[0]].split('_')[-1]))
     elif stratification_type == 'student_label':
-        # keys, labels = conversions.extract_keys_and_labels_from_dict(data)
-        # student_ids = conversions.extract_student_ids_from_keys(keys)
-
-        # for i in range(len(student_ids)):
-        #     stratification_column.append(str(student_ids[i]) + "_" + str(labels[i]))
-
+        keys, labels = conversions.extract_keys_and_labels_from_dict(data)
+        student_ids = conversions.extract_student_ids_from_keys(keys)
+        for i in range(len(student_ids)):
+            stratification_column.append(str(student_ids[i]) + "_" + str(labels[i]))
+    elif stratification_type == 'group_label':        
         for key in data_keys:
-            stratification_column.append(key.split('_')[0] + '_' + key.split('_')[-1])
-    elif stratification_type == 'group_label':
-        for key in data_keys:
-            stratification_column.append(groups['student_' + key.split('_')[0]].split('_')[-1] + '_' + key.split('_')[-1])
+            stratification_column.append(groups['student_' + key.split('_')[0]].split('_')[-1] + '_' + str(data['data'][key][-1]))
     else:
         print('No such kind of criteria for splitting!!!')
         exit()
