@@ -5,20 +5,70 @@
 # Functionality: Class, DTW_clusters: do clustering based on DTW distance
 # Author: Yunfei Luo
 # Start date: EST Mar.25th.2020
-# Last update: EST Apr.1th.2020
+# Last update: EST Apr.8th.2020
 # ----------------------------------------------------------------
 
 import numpy as np
-import matplotlib.pyplot as plt
+from sklearn.cluster import DBSCAN, OPTICS
+#import matplotlib.pyplot as plt
+import src.experiments.clustering.density_based_clustering as dbc
 
 class DTW_clusters:
-    def __init__(self, threshold):
-        self.threshold = threshold
+    def __init__(self, eps, min_samples):
+        self.eps = eps
+        self.min_samples = min_samples
         self.random_state = 0
         self.dist_matrix = list() # 2D array of distance matrix
         self.groups = dict() # dictionary, map: pts_ind -> group
         self.pts = list()
     
+    # helper functions
+    def cluster_by_construct_graph(self):
+        '''
+        Construct graph where each node represent each data point;
+        Add Edge between two nodes if their distance is below eps T;
+        Collect cluster information by retrieve connected graphs.
+        '''
+        # helper function
+        def dfs(ind, choosen, group_id):
+            for i in range(len(choosen)):
+                if choosen[i]:
+                    continue
+                if self.dist_matrix[ind][i] <= self.eps:
+                    choosen[i] = True
+                    self.groups[i] = group_id
+                    dfs(i, choosen, group_id)
+
+        # group the data points w.r.t eps
+        choosen = [False for _ in range(len(self.pts))]
+        group_id = -1
+        while False in choosen:
+            group_id += 1
+            ind = choosen.index(False)
+            choosen[ind] = True
+            self.groups[ind] = group_id
+            dfs(ind, choosen, group_id)
+    
+    def density_based_clustering(self):
+        '''
+        clusteri by DBSCAN or OPTICS (xi)
+        '''
+        group_assign = dict()
+        #clusters = OPTICS(min_samples=2, max_eps=75, cluster_method='xi', metric='precomputed').fit(self.dist_matrix)
+        clusters = dbc.density_based_clustering(eps=self.eps, min_samples=self.min_samples, cluster_method='xi', metric='precomputed').fit(self.dist_matrix)
+        
+        for i in range(len(self.pts)):
+            self.groups[i] = clusters.labels_[i]
+            try:
+                group_assign[clusters.labels_[i]].append(self.pts[i])
+            except:
+                group_assign[clusters.labels_[i]] = [self.pts[i]]
+        
+        # visualize
+        # for pt in group_assign[6]:
+        #     plt.plot([i[0] for i in pt], [i[1] for i in pt])
+        # plt.show()
+
     def fit(self, data):
         # calculate distance matrix
         dist_matrix = list()
@@ -29,29 +79,11 @@ class DTW_clusters:
             dist_matrix.append(row)
         self.dist_matrix = np.array(dist_matrix)
         self.pts = data
-        
-        # helper function
-        def dfs(ind, choosen, group_id):
-            for i in range(len(choosen)):
-                if choosen[i]:
-                    continue
-                if self.dist_matrix[ind][i] <= self.threshold:
-                    choosen[i] = True
-                    self.groups[i] = group_id
-                    dfs(i, choosen, group_id)
-
-        # group the data points w.r.t threshold
-        choosen = [False for _ in range(len(self.pts))]
-        group_id = -1
-        while False in choosen:
-            group_id += 1
-            ind = choosen.index(False)
-            choosen[ind] = True
-            self.groups[ind] = group_id
-            dfs(ind, choosen, group_id)
 
         # plt.imshow(self.dist_matrix, cmap='gray')
         # plt.show()
+        
+        self.density_based_clustering()
 
         return self
     
