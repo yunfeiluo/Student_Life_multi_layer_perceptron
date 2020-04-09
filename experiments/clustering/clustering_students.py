@@ -14,14 +14,15 @@ import os
 import sys
 import pandas as pd
 import numpy as np
-from sklearn.cluster import KMeans
+from sklearn.cluster import KMeans, OPTICS
 from sklearn import model_selection
 import src.utils.data_conversion_utils as conversions
 from src.utils.read_utils import read_pickle
 from src.utils import write_utils
 from src.experiments.clustering.dtw_ import DTW_clusters
+import src.experiments.clustering.density_based_clustering as dbc
 
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 
 def get_features(student_list, features): # helper function for kmeans
     '''
@@ -76,19 +77,19 @@ def kmeans_features(student_list, features, k): # build kmeans model
         x_.append(df[features[2]][i])
         y_.append(df[features[0]][i])
     
-    fig, ax = plt.subplots()
-    ax.scatter(x_, y_)
-    for i in range(len(student_list)):
-        ax.annotate(str(df[features[1]][i])[:5], (x_[i], y_[i]))
+    # fig, ax = plt.subplots()
+    # ax.scatter(x_, y_)
+    # for i in range(len(student_list)):
+    #     ax.annotate(str(df[features[1]][i])[:5], (x_[i], y_[i]))
 
-    #plt.scatter(x_, y_)
-    plt.xlabel('avg_ddl_per_week')
-    plt.ylabel('avg_hours_slept')
-    plt.show()
+    # #plt.scatter(x_, y_)
+    # plt.xlabel('avg_ddl_per_week')
+    # plt.ylabel('avg_hours_slept')
+    # plt.show()
     
     # kmeans clustering
-    kmeans = KMeans(n_clusters = k, random_state=0).fit(A)
-    centers = kmeans.cluster_centers_
+    model = KMeans(n_clusters = k, random_state=0).fit(A)
+    centers = model.cluster_centers_
     print('centers are: ')
     print(centers)
 
@@ -96,7 +97,7 @@ def kmeans_features(student_list, features, k): # build kmeans model
     groups = dict()
     for student in student_list:
         quality = student_features[int(student.split('_')[1])]
-        belongs = kmeans.predict([quality])[0]
+        belongs = model.predict([quality])[0]
         groups[student] = 'group_'+str(belongs)
         
     return groups
@@ -109,7 +110,7 @@ def one_for_each(student_list):
     return groups
 
 # clustering based on average stress
-def avg_stress_cluster(student_list, data, k):
+def avg_stress_cluster(student_list, data, eps, min_samples):
     '''
     @param student_list: list of student id, in the form (string)student_id
     @param data: actual data, dict: (string)keys -> data
@@ -117,50 +118,54 @@ def avg_stress_cluster(student_list, data, k):
     '''
     # compute averages
     stress = dict()
-    for i in data:
-        keys = i.split('_')
+    for key in data:
         try:
-            stress['student_'+keys[0]].append(int(keys[-1]))
+            stress['student_'+key.split('_')[0]].append(data[key][-1])
         except:
-            stress['student_'+keys[0]] = [int(keys[-1])]
+            stress['student_'+key.split('_')[0]] = [data[key][-1]]
     max_stress = -1
     for i in stress:
         stress[i] = sum(stress[i]) / len(stress[i])
         max_stress = max(max_stress, stress[i])
-    avgs = list()
-    if k >= 5:
-        avgs = [[stress[i]] for i in stress] # include all the students
-    else:
-        avgs = [[stress[i]] for i in stress if stress[i] > 0.0] # remove the lowest students
-        avgs = [i for i in avgs if i[0] < max_stress] # remove the highest students
-        
-    # kmeans clustering
-    kmeans = KMeans(n_clusters = k, random_state=0).fit(avgs)
-    centers = kmeans.cluster_centers_
-    print('(average stress) centers are: ')
-    print(centers)
 
-    # build group dictionary
+    avgs = [[stress[i]] for i in stress]
+
+    # visualize
+    # x = [i[0] for i in avgs]
+    # y = [0 for _ in range(len(avgs))]
+    # fig, ax = plt.subplots()
+    # ax.scatter(x, y)
+    # i = 0
+    # for student in stress:
+    #     ax.annotate(student.split('_')[-1], (x[i], y[i]))
+    #     i += 1
+    # plt.show()
+
+    #model = OPTICS(min_samples=2, max_eps=0.2, cluster_method='xi', metric='l1').fit(avgs)
+    model = dbc.density_based_clustering(eps=eps, min_samples=min_samples, cluster_method='xi', metric='l1').fit(avgs)
     groups = dict()
-    for student in student_list:
-        belongs = kmeans.predict([[stress[student]]])[0]
+    i = 0
+    for student in stress:
+        belongs = model.labels_[i]
         groups[student] = 'group_'+str(belongs)
+        i += 1
     return groups
 
 # time warping clustering
-def time_warping(student_list, data, feature, threshold):
+def time_warping(student_list, data, feature, eps, min_samples):
     '''
     @param student_list: list of student id, in the form (string)student_id
     @param data: actual data, dict: (string)keys -> data
     @param feature: {-1: stress label, 0-5: corresponding feature}
-    @param threshold: distance for clustering
+    @param eps: distance for clustering
+    @param min_samples: min # of samples for a point to be considered as a core
     '''
     month_days = {0: 0, 1: 31, 2: 28, 3: 31, 4: 30, 5: 31, 6: 30, 7: 31, 8: 31, 9: 30, 10: 31, 11: 30, 12: 31} # map: month -> # days
     # TODO (yunfeiluo)
     student_key = dict() # map: student -> [(key, time)]
     for key in data:
         curr = key.split('_')
-        time = sum([month_days[i] for i in range(int(curr[1]))]) + int(curr[2]) # month plus day
+        time = sum([month_days[i] for i in range(int(curr[1]))]) + int(curr[2]) + (int(curr[3]) / 24) # month plus day plus_hour
         try:
             student_key[curr[0]].append((key, time))
         except:
@@ -172,26 +177,26 @@ def time_warping(student_list, data, feature, threshold):
     pts = list()
     if feature == -1:
         for student in student_key: # [time, label]
-            pt = np.array([[i[1], int(i[0].split('_')[-1])] for i in student_key[student]])
+            pt = np.array([[i[1], data[i[0]][-1]] for i in student_key[student]])
             student_key[student] = pt
             pts.append(pt)
     pts = np.array(pts)
     
     # plt.plot([i[0] for i in pts[0]], [i[1] for i in pts[0]])
-    # for i in range(1, 3):
+    # for i in range(len(pts)):
     #     plt.plot([i[0] for i in pts[i]], [i[1] for i in pts[i]])
     # plt.show()
     
     # dtw clustering
     print('fitting...')
-    dtw_clusters = DTW_clusters(threshold=threshold).fit(pts)
+    dtw_clusters = DTW_clusters(eps=eps, min_samples=min_samples).fit(pts)
 
     # build group dictionary
     print('predicting...')
     groups = dict()
     for student in student_key:
         belongs = dtw_clusters.predict([student_key[student]])[0]
-        groups[student] = 'group_'+str(belongs)
+        groups['student_'+student] = 'group_'+str(belongs)
     return groups
 
 # do clustering works
@@ -206,15 +211,22 @@ def clustering(student_list, data, method):
     if method == 'one_for_each':
         groups = one_for_each(student_list)
     elif method[:10] == 'avg_stress':
-        groups = avg_stress_cluster(student_list=student_list, data=data, k=int(method.split('_')[-2]))
+        '''
+        avg_stress_eps_min-samples
+        '''
+        groups = avg_stress_cluster(student_list=student_list, data=data, eps=float(method.split('_')[-2]), min_samples=int(method.split('_')[-1]))
     elif method[:7] == 'surveys':
         features = ['avg_hours_slept', 'mode_sleep_rating', 'avg_dead_line_per_week']
         k = int(method.split('_')[-2])
         groups = kmeans_features(student_list, features, k)
     elif method [:3] == 'dtw':
-        threshold = int(method.split('_')[1])
+        '''
+        dtw_eps_min-samples
+        '''
+        eps = float(method.split('_')[1])
+        min_samples = int(method.split('_')[2])
         feature = -1 # stress label
-        groups = time_warping(student_list, data, feature, threshold)
+        groups = time_warping(student_list, data, feature, eps, min_samples)
     else:
         groups = one_for_each(student_list)
 
