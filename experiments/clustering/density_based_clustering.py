@@ -5,11 +5,12 @@
 # Functionality: Class, density_based_clustering: do clustering based on density
 # Author: Yunfei Luo
 # Start date: EST Apr.9th.2020
-# Last update: EST Apr.9th.2020
+# Last update: EST Apr.10th.2020
 # ----------------------------------------------------------------
 
 import numpy as np
 from sklearn.cluster import OPTICS
+from sklearn.cluster import DBSCAN
 
 class density_based_clustering:
     def __init__(self, eps, min_samples, cluster_method, metric):
@@ -19,29 +20,34 @@ class density_based_clustering:
         self.metric = metric
         self.dist_matrix = list()
         self.labels_ = list()
-    
-    def compute_dist_matrix(self, pts):
-        compute_dist = None
-        if self.metric == 'l1':
-            compute_dist = lambda x1, x2: np.linalg.norm(x1-x2, 1)
-        elif self.metric == 'l2':
-            compute_dist = lambda x1, x2: np.linalg.norm(x1-x2, 2)
+
+    def fit(self, pts):
+        # clustering
+        self.pts = np.array(pts)
+        if self.metric == 'precomputed':
+            self.dist_matrix = self.pts
+            print('############################ Predicted by DBSCAN ############################')
+            #clusters = OPTICS(min_samples=self.min_samples, max_eps=self.eps, cluster_method=self.cluster_method, metric='precomputed').fit(self.dist_matrix)
+            clusters = DBSCAN(eps=self.eps, min_samples=self.min_samples, metric='precomputed').fit(self.dist_matrix)
+            self.labels_ = clusters.labels_
         else:
-            print('The distance computing type is not available yet...')
-            exit()
-        dist_matrix = list()
-        for pt1 in pts:
-            row = list()
-            for pt2 in pts:
-                row.append(np.linalg.norm(pt1 - pt2))
-            dist_matrix.append(row)
-        return np.array(dist_matrix)
-    
+            self.dist_matrix = self.compute_dist_matrix(self.pts)
+            print('############################ Predicted by DBSCAN ############################')
+            #clusters = OPTICS(min_samples=self.min_samples, max_eps=self.eps, cluster_method=self.cluster_method).fit(self.pts)
+            clusters = DBSCAN(eps=self.eps, min_samples=self.min_samples, metric='precomputed').fit(self.dist_matrix)
+            self.labels_ = clusters.labels_
+
+        # clustering outliers
+        outliers_ind = [i for i in range(len(clusters.labels_)) if clusters.labels_[i] == -1]
+        self.cluster_outliers(outliers_ind)
+        
+        return self
+
     def cluster_outliers(self, outliers_ind):
         '''
         a. Put each outlier to the cluster where its closest points belongs to;
-        b. Repeat a. until no change made
-        c. Treat the rest outliers as in one group
+        b. Repeat a. until no change made;
+        c. Treat the rest outliers as in one group;
         '''
         # Cluster the outliers that are close to the exist clusters
         hasChange = True
@@ -105,22 +111,50 @@ class density_based_clustering:
                 i = j
             update outliers_ind
         '''
-                
 
-    def fit(self, pts):
-        # clustering
-        self.pts = np.array(pts)
-        if self.metric == 'precomputed':
-            self.dist_matrix = self.pts
-            clusters = OPTICS(min_samples=self.min_samples, max_eps=self.eps, cluster_method=self.cluster_method, metric='precomputed').fit(self.dist_matrix)
-            self.labels_ = clusters.labels_
+    # helper functions
+    # Calculate distance between to points
+    def compute_dist_matrix(self, pts):
+        compute_dist = None
+        if self.metric == 'l1':
+            compute_dist = lambda x1, x2: np.linalg.norm(x1-x2, 1)
+        elif self.metric == 'l2':
+            compute_dist = lambda x1, x2: np.linalg.norm(x1-x2, 2)
+        elif self.metric == 'dtw':
+            compute_dist = self.dtw_dist
         else:
-            self.dist_matrix = self.compute_dist_matrix(self.pts)
-            clusters = OPTICS(min_samples=self.min_samples, max_eps=self.eps, cluster_method=self.cluster_method).fit(self.pts)
-            self.labels_ = clusters.labels_
+            print('The distance computing type is not available yet...')
+            exit()
+        dist_matrix = list()
+        for pt1 in pts:
+            row = list()
+            for pt2 in pts:
+                row.append(compute_dist(pt1, pt2))
+            dist_matrix.append(row)
+        return np.array(dist_matrix)  
 
-        # clustering outliers
-        outliers_ind = [i for i in range(len(clusters.labels_)) if clusters.labels_[i] == -1]
-        self.cluster_outliers(outliers_ind)
+    ## DTW distance ##############################################################
+    def dist(self, p1, p2):
+        return np.linalg.norm(p1-p2, ord=2)
+
+    # Calculate DTW distance between to series data
+    def dtw_dist(self, ts1, ts2):
+        DTW = dict()
+        DTW[(0, 0)] = 0
         
-        return self
+        for i in range(len(ts1)):
+            for j in range(len(ts2)):
+                if i == 0 and j == 0:
+                    continue
+                cost = self.dist(ts1[i], ts2[j])
+                min_ = None
+                if i - 1 >= 0 and j - 1 >= 0:
+                    min_ = min(DTW[(i-1, j)], DTW[(i, j-1)], DTW[(i-1, j-1)])
+                elif i - 1 >= 0:
+                    min_ = DTW[(i-1, j)]
+                elif j - 1 >= 0:
+                    min_ = DTW[(i, j-1)]
+                DTW[(i, j)] = cost + min_
+        
+        return DTW[(len(ts1) - 1, len(ts2) - 1)]
+    ##############################################################################
