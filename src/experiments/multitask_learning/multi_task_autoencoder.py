@@ -151,6 +151,8 @@ for split_no, split in enumerate(splits):
     data['val_ids'] = split['val_ids']
 
     tensorified_data['test_ids'] = list()
+    
+    print('############# val student!!! {} ################'.format(data['val_ids'][0].split('_')[0]))
 
     validation_user_statistics_over_epochs = list()
 
