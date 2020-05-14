@@ -1,5 +1,6 @@
 # Machine Learning Research Project: Grouplized Student Stress Prediction  
 Title: Student_Life_multi_layer_perceptron  
+Open source project, master branch origined from: https://github.com/Information-Fusion-Lab-Umass/MultiRes 
   
 Works:  
 a) contribution to the Machine Learning Research Project on the dataset: student_life  
