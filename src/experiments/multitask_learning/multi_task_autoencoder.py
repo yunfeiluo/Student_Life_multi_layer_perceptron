@@ -67,7 +67,12 @@ except:
 # leave one subject out
 # num_subject = 5
 # ids = random.sample(student_ids, num_subject)
-ids = student_ids
+# ids = student_ids
+ids = ["4", "7", "8"]
+# ids = ["10", "14", "16", "17", "19"]
+# ids = ["22", "23", "24", "32", "33"]
+# ids = ["35", "36", "43", "44", "49"]
+# ids = ["51", "52", "53", "57", "58"]
 print('Choosen student: ', ids)
 splits = cross_val.leave_one_subject_out_split(data=data, groups=student_groups, ids=ids, subject='students')
 print("Splits: ", len(splits))
@@ -286,11 +291,11 @@ print("Avg AUC weighted Val Score: {}".format(list_mean(split_roc_weighted)))
 ################################################################################
 
 scores_and_epochs = (split_val_scores, epoch_at_best_score)
-scores_and_epochs_file_name = os.path.join('Data/data', "cross_val_scores/multitask_autoencoder_" + clusters + ".pkl")
+scores_and_epochs_file_name = os.path.join('Data/data', "cross_val_scores/multitask_autoencoder_" + clusters + str(ids) + ".pkl")
 write_utils.data_structure_to_pickle(scores_and_epochs, scores_and_epochs_file_name)
 
 AUC_scores = (split_roc_macro, split_roc_micro, split_roc_weighted)
-AUC_scores_file_name = os.path.join('Data/data', "cross_val_scores/auc_multitask_autoencoder_" + clusters + ".pkl")
+AUC_scores_file_name = os.path.join('Data/data', "cross_val_scores/auc_multitask_autoencoder_" + clusters + str(ids) + ".pkl")
 write_utils.data_structure_to_pickle(AUC_scores, AUC_scores_file_name)
 
 model_file_name = "saved_models/multitask_lstm-ae.model"
