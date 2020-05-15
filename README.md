@@ -18,4 +18,4 @@ a) K-Fold Cross Validation, Stratified by students, groups, student-id_stress-la
 b) leave one out validation, subject to students and groups  
 
 # Dependencies 
-python packet: Pytorch, tqdm, pandas, sklearn, pickle, numpy
+python packets: Pytorch, tqdm, pandas, sklearn, pickle, numpy 
