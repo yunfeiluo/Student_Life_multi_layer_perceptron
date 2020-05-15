@@ -73,6 +73,7 @@ ids = ["4", "7", "8"]
 # ids = ["22", "23", "24", "32", "33"]
 # ids = ["35", "36", "43", "44", "49"]
 # ids = ["51", "52", "53", "57", "58"]
+# missing = [8, 10, 14, 22, 23, 36, 43, 49, 51, 57, 58]
 print('Choosen student: ', ids)
 splits = cross_val.leave_one_subject_out_split(data=data, groups=student_groups, ids=ids, subject='students')
 print("Splits: ", len(splits))

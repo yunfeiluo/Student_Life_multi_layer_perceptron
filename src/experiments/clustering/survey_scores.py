@@ -191,42 +191,53 @@ if __name__ == "__main__":
     # calc_panas()
 
     # # aggregate previous calculated scores (Big five, and some of the sleep score)
-    df_out = pd.read_csv("src/experiments/clustering/survey/scores.csv", index_col="student_id")
-    previous_df = pd.read_csv("Data/data/surveys_and_covariates/high_lelvel_aggregated_data.csv", index_col="student_id")
-    new_col = dict() # map: col_name -> list()
-    for item in previous_df.columns:
-        new_col[item] = list()
-    # print(df_out.loc[0, 'post_PHQ_9'])
+    # df_out = pd.read_csv("src/experiments/clustering/survey/scores.csv", index_col="student_id")
+    # previous_df = pd.read_csv("Data/data/surveys_and_covariates/high_lelvel_aggregated_data.csv", index_col="student_id")
+    # new_col = dict() # map: col_name -> list()
+    # for item in previous_df.columns:
+    #     new_col[item] = list()
+    # # print(df_out.loc[0, 'post_PHQ_9'])
 
-    # extract value from previous calculated file
-    has = list()
-    for i, row in df_out.iterrows():
-        has.append(i)
-        for item in new_col:
-            try:
-                new_col[item].append(previous_df.loc[i, item])
-            except:
-                new_col[item].append(None)
-    for item in new_col:
-        df_out[item] = new_col[item]
+    # # extract value from previous calculated file
+    # has = list()
+    # for i, row in df_out.iterrows():
+    #     has.append(i)
+    #     for item in new_col:
+    #         try:
+    #             new_col[item].append(previous_df.loc[i, item])
+    #         except:
+    #             new_col[item].append(None)
+    # for item in new_col:
+    #     df_out[item] = new_col[item]
     
-    new = list()
-    for i, row in previous_df.iterrows():
-        if i not in has:
-            new.append(i)
-    print('new', new)
+    # new = list()
+    # for i, row in previous_df.iterrows():
+    #     if i not in has:
+    #         new.append(i)
+    # print('new', new)
 
-    # append new row
-    for id_ in new:
-        new_row = list()
-        for item in df_out.columns:
-            try:
-                new_row.append(previous_df.loc[id_, item])
-            except:
-                new_row.append(None)
-        df_out.loc[id_] = new_row
-    print(df_out)
+    # # append new row
+    # for id_ in new:
+    #     new_row = list()
+    #     for item in df_out.columns:
+    #         try:
+    #             new_row.append(previous_df.loc[id_, item])
+    #         except:
+    #             new_row.append(None)
+    #     df_out.loc[id_] = new_row
+    # print(df_out)
     
-    # write to file
-    df_out.to_csv('src/experiments/clustering/survey/scores.csv')
+    # # write to file
+    # df_out.to_csv('src/experiments/clustering/survey/scores.csv')
     
+    # check missing data
+    missing_ids = list()
+    df = pd.read_csv("src/experiments/clustering/survey/scores.csv", index_col="student_id")
+    df = df.isna()
+    for i, row in df.iterrows():
+        for j in row:
+            if j:
+                missing_ids.append(i)
+    #print(df)
+    missing_ids = [i for i in set(missing_ids)]
+    print("missing ids", missing_ids)
