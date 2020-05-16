@@ -11,7 +11,7 @@ import pandas as pd
 # ----------------------------------------------------------------
 
 class survey_scores:
-    def __init__(self, csv_file_path, neg_scale, pos_scale, pos_term, pre_col, post_col):
+    def __init__(self, csv_file_path, neg_scale, pos_scale, pos_term, pre_col, post_col, filter_q):
         self.neg_scale = neg_scale
         self.pos_scale = pos_scale
         self.pos_term = pos_term
@@ -21,9 +21,11 @@ class survey_scores:
         self.missing_data = list()
 
         # indexing questions
-        self.questions = df.columns[2:]
-        for q in self.questions:
-            print(q)
+        self.questions = list()
+        for i in range(len(df.columns[2:])):
+            if i+1 in filter_q:
+                self.questions.append(df.columns[2:][i])
+                print(df.columns[2:][i])
         # indexing scores
         for uid in df["uid"]:
             key = int(uid[1:])
@@ -137,7 +139,7 @@ class survey_scores:
                 else:
                     new_row.append(None)
             df_out.loc[id_] = new_row
-        print(df_out)
+        #print(df_out)
 
         self.missing_data = [i for i in set(self.missing_data)]
         print('missing data', self.missing_data)
@@ -183,12 +185,29 @@ def calc_panas():
     csv_file_path = "src/experiments/clustering/survey/panas.csv"
     PSS_score = survey_scores(csv_file_path, neg_scale, pos_scale, pos_term, "pre_panas_positive", "post_panas_positive")
 
+def calc_big_five():
+    neg_scale = {"Disagree Strongly": 5, "Disagree a little": 4, "Neither agree nor disagree": 3, "Agree a little": 2, "Agree strongly": 1}
+    pos_scale = {"Disagree Strongly": 1, "Disagree a little": 2, "Neither agree nor disagree": 3, "Agree a little": 4, "Agree strongly": 5}
+    # filter_q = [1, 6, 11, 16, 21, 26, 31, 36]
+    # pos_term = [1, 11, 16, 26, 36]
+    # filter_q = [2, 7, 12, 17, 22, 27, 32, 37, 42]
+    # pos_term = [7, 17, 22, 32, 42]
+    # filter_q = [3, 8, 13, 18, 23, 28, 33, 38, 43]
+    # pos_term = [3, 13, 28, 33, 38]
+    # filter_q = [4, 9, 14, 19, 24, 29, 34, 39]
+    # pos_term = [4, 14, 19, 29, 39] 
+    filter_q = [5, 10, 15, 20, 25, 30, 35, 40, 41, 44]
+    pos_term = [5, 10, 15, 20, 25, 30, 40, 44]
+    csv_file_path = "src/experiments/clustering/survey/BigFive.csv"
+    PSS_score = survey_scores(csv_file_path, neg_scale, pos_scale, pos_term, "O_pre", "O_post", filter_q)
+
 if __name__ == "__main__":
     # calc_PHQ_9()
     # calc_PSS()
     # calc_lonliness_scale()
     # calc_flourishing_scale()
     # calc_panas()
+    calc_big_five()
 
     # # aggregate previous calculated scores (Big five, and some of the sleep score)
     # df_out = pd.read_csv("src/experiments/clustering/survey/scores.csv", index_col="student_id")
@@ -231,13 +250,14 @@ if __name__ == "__main__":
     # df_out.to_csv('src/experiments/clustering/survey/scores.csv')
     
     # check missing data
-    missing_ids = list()
-    df = pd.read_csv("src/experiments/clustering/survey/scores.csv", index_col="student_id")
-    df = df.isna()
-    for i, row in df.iterrows():
-        for j in row:
-            if j:
-                missing_ids.append(i)
-    #print(df)
-    missing_ids = [i for i in set(missing_ids)]
-    print("missing ids", missing_ids)
+    # missing_ids = list()
+    # #df = pd.read_csv("src/experiments/clustering/survey/scores.csv", index_col="student_id")
+    # df = pd.read_csv("src/experiments/clustering/survey/BigFive.csv", index_col="uid")
+    # df = df.isna()
+    # for i, row in df.iterrows():
+    #     for j in row:
+    #         if j:
+    #             missing_ids.append(i)
+    # #print(df)
+    # missing_ids = [i for i in set(missing_ids)]
+    # print("missing ids", missing_ids)
