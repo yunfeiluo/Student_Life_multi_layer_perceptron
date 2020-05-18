@@ -219,7 +219,7 @@ if __name__ == "__main__":
     '''
     from sklearn.cluster import KMeans
     student_list = [4, 7, 8, 10, 14, 16, 17, 19, 22, 23, 24, 32, 33, 35, 36, 43, 44, 49, 51, 52, 53, 57, 58]
-    df = pd.read_csv("src/experiments/clustering/survey/scores.csv", index_col="student_id")
+    df = pd.read_csv("src/experiments/clustering/survey/scores_pre.csv", index_col="student_id")
     student_survey_scores = dict()
     missing_students = list()
     for i, row in df.iterrows():
@@ -240,7 +240,7 @@ if __name__ == "__main__":
     print("missing students", missing_students)
     ms = np.array([student_survey_scores[i] for i in student_survey_scores if i in missing_students])
 
-    num_groups = 2
+    num_groups = 4
     # kmeans on clean dataset
     X = np.array([student_survey_scores[i] for i in student_survey_scores if i not in missing_students])
     kmeans = KMeans(n_clusters=num_groups, random_state=0).fit(X)
@@ -285,11 +285,11 @@ if __name__ == "__main__":
         output_group['student_{}'.format(i)] = "group_{}".format(student_group[i])
     
     # write to file
-    with open("Data/student_groups/survey_scores_{}.pkl".format(num_groups), 'wb') as f:
+    with open("Data/student_groups/pre_survey_scores_{}.pkl".format(num_groups), 'wb') as f:
         pickle.dump(output_group, f)
     
     # check
-    with open("Data/student_groups/survey_scores_{}.pkl".format(num_groups), 'rb') as f:
+    with open("Data/student_groups/pre_survey_scores_{}.pkl".format(num_groups), 'rb') as f:
         readed_file = pickle.load(f)
         for stu in readed_file:
             print("{}, {}".format(stu, readed_file[stu]))
